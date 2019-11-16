@@ -1,0 +1,120 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 和 java mapper 的类名一样，从包名开始打，有自动补全-->
+<mapper namespace="kybmig.ssm.mapper.TopicMapper">
+    <!-- resultType 和 mapper 中的方法返回值一样，不能省，从包名开始打，有自动补全-->
+    <!--  里面的 sql 语句，有自动补全,要配置 ide 的 datasource -->
+    <select id="selectAll" resultType="kybmig.ssm.model.TopicModel">
+        SELECT * FROM ssm.Topic
+    </select>
+
+    <select id="select" resultType="kybmig.ssm.model.TopicModel">
+        SELECT  Topic.id, Topic.title, Topic.createdTime FROM ssm.Topic WHERE userId = #{userId}
+    </select>
+
+    <!-- 传参数方式1，直接传入一个基本类型 int，这个 int 会被绑定到 ${id} -->
+    <select id="selectOne" resultType="kybmig.ssm.model.TopicModel">
+        SELECT * FROM ssm.Topic WHERE id = #{id}
+    </select>
+
+    <select id="findAuthorNameWithTopicId" resultType="kybmig.ssm.model.TopicModel">
+        SELECT username
+        FROM ssm.user, ssm.topic
+        WHERE topic.id = #{id} and topic.userId = user.id
+    </select>
+
+    <!-- 传参方式2，传入一个对象。content 代表这个对象的 content 属性，注意这个对象要有 getter setter -->
+    <!-- useGeneratedKeys keyProperty 当我传入一个对象的时候，这两个属性可以把数据库创建的 id 赋值给这个对象 -->
+    <!--    用 #{} 可以防止 SQL 注入, 更安全-->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ssm.Topic (title, content, userId, createdTime, updatedTime) VALUES (#{title}, #{content}, #{userId}, #{createdTime}, #{updatedTime})
+    </insert>
+    
+    <update id="update">
+        UPDATE ssm.Topic SET content = #{content}, title=#{title}, updatedTime=#{updatedTime} WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM ssm.Topic WHERE id = #{id}
+    </delete>
+
+    <resultMap id="selectOneWithCommentsMap" type="kybmig.ssm.model.TopicModel">
+        <id property="id" column="id" />
+        <result property="title"  column="title" />
+        <result property="content"  column="content" />
+        <collection property="commentList" ofType="kybmig.ssm.model.TopicCommentModel">
+            <id property="id" column="c_id" />
+            <result property="content"  column="c_content" />
+        </collection>
+    </resultMap>
+
+    <select id="selectOneWithComments" resultMap="selectOneWithCommentsMap">
+        SELECT
+            Topic.id,
+            Topic.title,
+            Topic.content,
+            TopicComment.id as c_id,
+            TopicComment.content as c_content
+        FROM
+            ssm.Topic left join TopicComment
+                                on Topic.id = TopicComment.topicId
+        where Topic.id = #{id}
+
+    </select>
+
+    <resultMap id="selectOneWithCommentsAndUserMap" type="kybmig.ssm.model.TopicModel">
+        <id property="id" column="id" />
+        <result property="title"  column="title" />
+        <result property="content"  column="content" />
+        <collection property="commentList" ofType="kybmig.ssm.model.TopicCommentModel">
+            <id property="id" column="c_id" />
+            <result property="content"  column="c_content" />
+            <association property="user" column="u_username" javaType="kybmig.ssm.model.UserModel">
+                <result property="username" column="u_username" />
+            </association>
+        </collection>
+    </resultMap>
+
+    <select id="selectOneWithCommentsAndUser" resultMap="selectOneWithCommentsAndUserMap">
+        SELECT
+            Topic.id,
+            Topic.title,
+            Topic.content,
+            Topic.userId,
+            TopicComment.id as c_id,
+            TopicComment.content as c_content,
+            User.username as u_username
+        FROM
+            ssm.Topic left join (TopicComment join User) on Topic.id = TopicComment.topicId and TopicComment.userId = User.id
+        where Topic.id = #{id}
+    </select>
+
+    <resultMap id="selectCommentsWithTopicIdMap" type="kybmig.ssm.model.TopicModel">
+        <id property="id" column="id" />
+        <result property="title"  column="title" />
+        <result property="content"  column="content" />
+        <collection property="commentList" ofType="kybmig.ssm.model.TopicCommentModel">
+            <id property="id" column="c_id" />
+            <result property="content"  column="c_content" />
+        </collection>
+    </resultMap>
+
+    <select id="selectCommentsWithTopicId" resultMap="selectOneWithCommentsMap">
+        SELECT
+            Topic.id,
+            Topic.title,
+            Topic.content,
+            TopicComment.id as c_id,
+            TopicComment.content as c_content
+        FROM
+            ssm.Topic left join TopicComment
+                                on Topic.id = TopicComment.userId
+        where Topic.id = #{id}
+    </select>
+    <select id="selectComOnTopics" resultType="kybmig.ssm.model.TopicModel">
+        SELECT distinct topic.id, topic.title, topic.createdTime
+        From  ssm.topiccomment, ssm.topic, ssm.user
+        where topiccomment.userId = user.id and topiccomment.topicId = topic.id and user.id = #{id}
+    </select>
+</mapper>
